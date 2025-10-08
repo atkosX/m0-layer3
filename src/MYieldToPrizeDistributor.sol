@@ -201,7 +201,7 @@ contract MYieldToPrizeDistributor is
      * @notice Enable earning for this extension contract
      * @dev Calls M token's startEarning() function
      */
-    function enableEarning() external whenNotPaused {
+    function enableEarning() external whenNotPaused nonReentrant {
         if (earningActive) revert EarningAlreadyEnabled();
         
         uint256 currentIndex = mToken.currentIndex();
@@ -216,7 +216,7 @@ contract MYieldToPrizeDistributor is
      * @notice Disable earning for this extension contract
      * @dev Calls M token's stopEarning() function
      */
-    function disableEarning() external whenNotPaused {
+    function disableEarning() external whenNotPaused nonReentrant {
         if (!earningActive) revert EarningNotEnabled();
         
         uint256 currentIndex = mToken.currentIndex();
@@ -237,7 +237,7 @@ contract MYieldToPrizeDistributor is
     function claimYield() public virtual nonReentrant whenNotPaused returns (uint256 yieldAmount) {
         yieldAmount = _calculateYield();
         
-        if (yieldAmount == 0) return 0;
+        if (yieldAmount <= 0) return 0;
         
         // Update cumulative tracking
         totalYieldClaimed += yieldAmount;
@@ -261,12 +261,13 @@ contract MYieldToPrizeDistributor is
     function setYieldRecipient(address newYieldRecipient) external onlyRole(GOV_ROLE) {
         if (newYieldRecipient == address(0)) revert ZeroAddress();
         
-        // Claim yield for current recipient first
+        address oldRecipient = yieldRecipient;
+        
+        // Claim yield for old recipient before changing recipient
         if (_calculateYield() > 0) {
             claimYield();
         }
         
-        address oldRecipient = yieldRecipient;
         yieldRecipient = newYieldRecipient;
         
         emit YieldRecipientSet(oldRecipient, newYieldRecipient);
@@ -356,10 +357,10 @@ contract MYieldToPrizeDistributor is
     /* ============ Internal Functions ============ */
 
     function _calculateYield() internal view returns (uint256) {
-        uint256 mBalance = IERC20(address(mToken)).balanceOf(address(this));
+        uint256 mTokenBalance = IERC20(address(mToken)).balanceOf(address(this));
         uint256 supply = totalSupply;
         
-        return mBalance > supply ? mBalance - supply : 0;
+        return mTokenBalance > supply ? mTokenBalance - supply : 0;
     }
 
     function _mint(address account, uint256 amount) internal {
