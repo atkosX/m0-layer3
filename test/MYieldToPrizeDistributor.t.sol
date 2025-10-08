@@ -25,9 +25,8 @@ contract MYieldToPrizeDistributorTest is Test {
     address public user1 = address(0x100);
     address public user2 = address(0x200);
 
-    uint256 constant INITIAL_M_BALANCE = 1_000_000e6; // 1M M tokens
-    uint256 constant WRAP_AMOUNT = 100_000e6; // 100k M tokens
-
+    uint256 constant INITIAL_M_BALANCE = 1_000_000e6; 
+    uint256 constant WRAP_AMOUNT = 100_000e6; 
     event Transfer(address indexed from, address indexed to, uint256 value);
     event YieldClaimed(uint256 amount, address indexed recipient);
     event EarningEnabled(uint256 indexed atIndex);
