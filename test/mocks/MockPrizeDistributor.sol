@@ -63,4 +63,19 @@ contract MockPrizeDistributor is IPrizeDistributor {
     function getTotalYieldReceived() external view returns (uint256) {
         return totalReceived;
     }
+
+    function getEpochCount() external view returns (uint256) {
+        return epochHistory.length;
+    }
+
+    function getLastEpoch() external view returns (uint256) {
+        if (epochHistory.length == 0) return 0;
+        return epochHistory[epochHistory.length - 1];
+    }
+
+    function getEpochYieldAt(uint256 index) external view returns (uint256 epoch, uint256 yield) {
+        require(index < epochHistory.length, "Index out of bounds");
+        epoch = epochHistory[index];
+        yield = epochYields[epoch];
+    }
 }
