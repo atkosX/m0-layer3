@@ -260,18 +260,8 @@ For complete deployment guide, see [DEPLOY.md](./DEPLOY.md)
 - **ReentrancyGuard**: Prevents reentrancy attacks on distribution
 - **Pausable**: Can pause distribution in emergencies
 - **Access Control**: Role-based permissions for all admin functions
-- **Zero Address Checks**: Prevents setting zero addresses
 - **Yield Validation**: Ensures yield exists before distribution
 
----
-
-## Risks & Considerations
-
-1. **M0 Dependency**: Contract relies on M0's yield calculation and claiming mechanism
-2. **Single Point of Failure**: All yield goes to one beneficiary
-3. **Upgrade Risk**: UUPS upgrades require careful implementation
-4. **Gas Costs**: Distribution requires gas, consider batching strategies
-5. **Yield Timing**: Pull-based model means yield must be actively claimed
 
 ---
 
