@@ -17,7 +17,7 @@ A minimal, correct M0 Earner extension that holds $M (TestUSD) and routes 100% o
 
 ---
 
-## Overview
+## Overview`
 
 MYieldToOne is an upgradeable, pausable smart contract that integrates with M0's yield earning system. It uses a **pull-based claiming model** where the contract must actively call M0 to claim accrued yield, then distributes 100% of that yield to a designated beneficiary.
 
@@ -154,34 +154,6 @@ cast send $PROXY 'enableEarning()' --private-key $PRIVATE_KEY --rpc-url $SEPOLIA
 cast send $PROXY 'claimYield()' --private-key $PRIVATE_KEY --rpc-url $SEPOLIA_RPC_URL
 ```
 
----
-
-## Contract Functions
-
-### Core Functions
-
-| Function                                                                             | Access             | Description                                      |
-| ------------------------------------------------------------------------------------ | ------------------ | ------------------------------------------------ |
-| `initialize(name, symbol, mToken, swapFacility, yieldRecipient, admin, pauser, gov)` | Initializer        | Initialize the proxy                             |
-| `enableEarning()`                                                                    | GOV_ROLE           | Begin earning yield via M0                       |
-| `disableEarning()`                                                                   | DEFAULT_ADMIN_ROLE | Stop earning yield                               |
-| `claimYield()`                                                                       | Public             | Claim and distribute all yield (when not paused) |
-| `setYieldRecipient(address)`                                                         | GOV_ROLE           | Change beneficiary                               |
-
-### Admin Functions
-
-| Function                | Access             | Description                |
-| ----------------------- | ------------------ | -------------------------- |
-| `pause()` / `unpause()` | PAUSER_ROLE        | Pause/unpause distribution |
-| `upgradeTo(address)`    | DEFAULT_ADMIN_ROLE | Upgrade implementation     |
-
-### View Functions
-
-| Function              | Returns | Description                     |
-| --------------------- | ------- | ------------------------------- |
-| `yield()`             | uint256 | Get claimable yield amount      |
-| `totalYieldClaimed()` | uint256 | Total yield distributed to date |
-| `lastClaimTime()`     | uint256 | Timestamp of last distribution  |
 
 ### Roles
 
@@ -277,8 +249,8 @@ m0extension-main/
 │   ├── ISwapFacility.sol               # Swap facility interface
 │   └── IPrizeDistributor.sol           # Prize distributor interface
 ├── test/
-│   ├── MYieldToPrizeDistributor.t.sol  # Core tests (53 tests)
-│   ├── MYieldToPrizeDistributorUpgrade.t.sol # Upgrade tests (5 tests)
+│   ├── MYieldToPrizeDistributor.t.sol  # Core tests
+│   ├── MYieldToPrizeDistributorUpgrade.t.sol # Upgrade tests
 │   └── mocks/                          # Mock contracts
 ├── script/
 │   ├── Demo.s.sol                      # Demo with balance tracking
