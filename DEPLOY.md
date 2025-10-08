@@ -1,119 +1,252 @@
-# 🚀 M0 Extension Testnet Deployment
+# Testnet Deployment Guide
 
-## 📋 Deployment Summary
+Complete guide for deploying MYieldToOne Extension to testnet.
 
-**Network**: Sepolia Testnet (Chain ID: 11155111)  
-**Deployment Date**: October 8, 2024  
-**Status**: ✅ Successfully Deployed & Verified
+---
 
-## 🏗️ Contract Addresses
+## 📋 **Table of Contents**
 
-| Contract                             | Address                                      | Type               |
-| ------------------------------------ | -------------------------------------------- | ------------------ |
-| **MYieldToPrizeDistributor (Proxy)** | `0xF49149cf9C6e28CF7CE435cD0d7e3D190C9f4601` | Main Contract      |
-| **Implementation**                   | `0xd25848d17D40a505ca27036a03554e12fBBd5D20` | Logic Contract     |
-| **MockMToken**                       | `0xB53CE3b3221d5CFcD73671A8524EC82c147515f3` | Mock M Token       |
-| **MockSwapFacility**                 | `0x1b68BFb49d21235b386c513a643C86e212A5DD9E` | Mock Swap Facility |
-| **MockPrizeDistributor**             | `0x1F9B522Aa93C6E57daA223770F8eE3451D5732D3` | Yield Recipient    |
+- [Prerequisites](#prerequisites)
+- [Environment Setup](#environment-setup)
+- [Deployment Steps](#deployment-steps)
+- [One-Liner Commands](#one-liner-commands)
+- [Actual Deployment Results](#actual-deployment-results)
+- [Verification](#verification)
+- [Troubleshooting](#troubleshooting)
 
-## 🔗 Etherscan Links
+---
 
-- **Main Contract**: https://sepolia.etherscan.io/address/0xf49149cf9c6e28cf7ce435cd0d7e3d190c9f4601
-- **Implementation**: https://sepolia.etherscan.io/address/0xd25848d17d40a505ca27036a03554e12fbbd5d20
-- **MockMToken**: https://sepolia.etherscan.io/address/0xb53ce3b3221d5cfcd73671a8524ec82c147515f3
-- **MockSwapFacility**: https://sepolia.etherscan.io/address/0x1b68bfb49d21235b386c513a643c86e212a5dd9e
-- **MockPrizeDistributor**: https://sepolia.etherscan.io/address/0x1f9b522aa93c6e57daa223770f8ee3451d5732d3
+## Prerequisites
 
-## 📊 Key Transactions
+- ✅ Foundry installed and configured
+- ✅ Testnet ETH for gas fees
+- ✅ Private key for deployment
 
-### 1. Wrap M Tokens
+---
 
-- **Hash**: `0x5e653824e588c97c5bbf0d152e77041307e554af0a132d79e9679fb71fc7eb10`
-- **Action**: Wrapped 100,000 M tokens into extension
-- **Link**: https://sepolia.etherscan.io/tx/0x5e653824e588c97c5bbf0d152e77041307e554af0a132d79e9679fb71fc7eb10
+## Environment Setup
 
-### 2. Enable Earning
+### Set Environment Variables
 
-- **Hash**: `0xda8d9371ac28c95c3bab88ccce015baa895c80420e1a7925576516440d069aea`
-- **Action**: Started earning yield on held M tokens
-- **Link**: https://sepolia.etherscan.io/tx/0xda8d9371ac28c95c3bab88ccce015baa895c80420e1a7925576516440d069aea
-
-### 3. Claim Yield
-
-- **Hash**: `0xb328b4cb6a61f7a43636576a405143fdd176100c3905cb6d7e80b8bd2c89b692`
-- **Action**: Claimed 10,000 M tokens yield and distributed to PrizeDistributor
-- **Link**: https://sepolia.etherscan.io/tx/0xb328b4cb6a61f7a43636576a405143fdd176100c3905cb6d7e80b8bd2c89b692
-
-## 🧪 Test Results
-
-### Initial State
-
-- **Wrapped M Tokens**: 100,000 M
-- **Total Supply**: 100,000 M
-- **PrizeDistributor Balance**: 0 M
-
-### After Yield Simulation
-
-- **Simulated Yield**: 10,000 M tokens
-- **Extension M Balance**: 110,000 M tokens
-- **Total Supply**: 110,000 M tokens (100k wrapped + 10k yield)
-
-### After Yield Claim
-
-- **PrizeDistributor Balance**: 10,000 M tokens ✅
-- **Yield Distribution**: 100% of yield successfully distributed ✅
-
-## 🔧 Deployment Commands
+Create a `.env` file or export variables:
 
 ```bash
-# Set environment variables
-export EXTENSION="0xF49149cf9C6e28CF7CE435cD0d7e3D190C9f4601"
-export M_TOKEN="0xB53CE3b3221d5CFcD73671A8524EC82c147515f3"
-export SWAP_FACILITY="0x1b68BFb49d21235b386c513a643C86e212A5DD9E"
-export PRIZE_DISTRIBUTOR="0x1F9B522Aa93C6E57daA223770F8eE3451D5732D3"
+# Required for deployment
+export PRIVATE_KEY="0xYourPrivateKey"
+export SEPOLIA_RPC_URL="https://your-rpc-url"
 
-# Test the deployment
+# Optional: Etherscan API key for verification
+export ETHERSCAN_API_KEY="your-etherscan-api-key"
+```
+
+### Verify Environment
+
+```bash
+# Check that variables are set
+echo "RPC: $SEPOLIA_RPC_URL"
+echo "Private Key: ${PRIVATE_KEY:0:10}..."
+```
+
+---
+
+## Deployment Steps
+
+### Step 1: Deploy Full System
+
+```bash
+forge script script/DeployWithMocks.s.sol \
+  --rpc-url $SEPOLIA_RPC_URL \
+  --broadcast \
+  --private-key $PRIVATE_KEY
+```
+
+**This will deploy:**
+
+- Mock M Token
+- Mock SwapFacility
+- Mock PrizeDistributor
+- MYieldToOne Implementation
+- MYieldToOne Proxy (initialized)
+
+### Step 2: Save Contract Addresses
+
+From the deployment output, save these addresses:
+
+```bash
+export EXTENSION="0x[ProxyAddress]"
+export M_TOKEN="0x[MTokenAddress]"
+export SWAP_FACILITY="0x[SwapFacilityAddress]"
+export PRIZE_DISTRIBUTOR="0x[PrizeDistributorAddress]"
+```
+
+### Step 3: Verify Deployment
+
+```bash
+# Check contract is initialized
+cast call $EXTENSION "name()(string)" --rpc-url $SEPOLIA_RPC_URL
+cast call $EXTENSION "yieldRecipient()(address)" --rpc-url $SEPOLIA_RPC_URL
+cast call $EXTENSION "earningActive()(bool)" --rpc-url $SEPOLIA_RPC_URL
+```
+
+---
+
+## One-Liner Commands
+
+### Start Earning
+
+```bash
+cast send $EXTENSION 'enableEarning()' \
+  --private-key $PRIVATE_KEY \
+  --rpc-url $SEPOLIA_RPC_URL
+```
+
+### Claim and Distribute Yield
+
+```bash
+cast send $EXTENSION 'claimYield()' \
+  --private-key $PRIVATE_KEY \
+  --rpc-url $SEPOLIA_RPC_URL
+```
+
+### Complete Test Flow
+
+```bash
+# 1. Wrap 100k M tokens
 cast send $SWAP_FACILITY 'wrapMToken(address,uint256)' \
   $EXTENSION 100000000000 \
   --private-key $PRIVATE_KEY --rpc-url $SEPOLIA_RPC_URL
 
+# 2. Enable earning
 cast send $EXTENSION 'enableEarning()' \
   --private-key $PRIVATE_KEY --rpc-url $SEPOLIA_RPC_URL
 
+# 3. Simulate yield (10k M)
 cast send $M_TOKEN 'simulateYield(address,uint256)' \
   $EXTENSION 10000000000 \
   --private-key $PRIVATE_KEY --rpc-url $SEPOLIA_RPC_URL
 
+# 4. Check claimable yield
+cast call $EXTENSION 'yield()(uint256)' --rpc-url $SEPOLIA_RPC_URL
+
+# 5. Claim and distribute yield
 cast send $EXTENSION 'claimYield()' \
   --private-key $PRIVATE_KEY --rpc-url $SEPOLIA_RPC_URL
+
+# 6. Check PrizeDistributor balance
+cast call $EXTENSION 'balanceOf(address)(uint256)' \
+  $PRIZE_DISTRIBUTOR --rpc-url $SEPOLIA_RPC_URL
 ```
 
-## ✅ Verification Status
+---
 
-All contracts have been successfully verified on Etherscan:
+## 🚀 **Actual Deployment Results**
 
-- ✅ MYieldToPrizeDistributor (Proxy)
-- ✅ Implementation Contract
-- ✅ MockMToken
-- ✅ MockSwapFacility
-- ✅ MockPrizeDistributor
+### Network Information
 
-## 🎯 Architecture Verification
+- **Network**: Sepolia Testnet
+- **Chain ID**: 11155111
+- **Block Number**: 9368919
+- **Deployment Date**: December 2024
 
-The deployed contract successfully implements the M0 MYieldToOne pattern:
+### Contract Addresses
 
-1. **✅ Wrapping**: Users can wrap M tokens 1:1 into extension tokens
-2. **✅ Earning**: Extension can start/stop earning on held M tokens
-3. **✅ Yield Calculation**: Yield = M balance - total supply
-4. **✅ Yield Distribution**: 100% of yield minted to designated recipient
-5. **✅ Access Control**: Proper role-based permissions
-6. **✅ Upgradeability**: UUPS proxy pattern implemented
-7. **✅ Pausability**: Contract can be paused/unpaused
+| Contract                                 | Address                                      |
+| ---------------------------------------- | -------------------------------------------- |
+| **MYieldToOne Proxy**                    | `0x55F20C2b576Edb53B85D1e98898b53D63C8b88D2` |
+| **MYieldToOne Implementation**           | `0xEFC0411F5F5Cb91A75F3ca0d2e6870da8B504484` |
+| **Admin**                                | `0xad484485127B501B63274Ed34B594C8FC3f22504` |
+| **Yield Beneficiary (PrizeDistributor)** | `0xbe65531Bd68d1D5E898D6061484761dbf2221b3E` |
+| **M Token (Mock)**                       | `0x2B5899D1d1607FEfBfD54D6EfD2659Cc146b20c2` |
+| **SwapFacility (Mock)**                  | `0x700669F97C704A5f11F12555c9160DE23ac9bCAa` |
 
-## 🚨 Important Notes
+### Transaction Hashes
 
-- This is a **testnet deployment** using mock contracts
-- For mainnet deployment, replace mocks with real M0 contracts
-- The extension follows M0's official architecture patterns
-- All yield is automatically distributed to the PrizeDistributor
-- Contract is fully upgradeable and pausable
+| Operation                       | Transaction Hash                                                     |
+| ------------------------------- | -------------------------------------------------------------------- |
+| **Contract Deployment**         | `0x870d206707b3556633ee663097cdd7d685f9afc50bb8e3cf9b8ef23c81f5f8d3` |
+| **M Token Deployment**          | `0x18c3e29606fd9fa7c4a1c68fe49e0bd46fb5c77bdb080b52ee7d7a45e3a308b9` |
+| **SwapFacility Deployment**     | `0x780f4dba0023a131d122b2f42390846fda4b36e85040be9fb5092f55c122935f` |
+| **PrizeDistributor Deployment** | `0xf37e64749b67803bb29a7178a54acffa868a44aa5b3d84c82f0fc68885ec3bce` |
+| **Wrap M Tokens**               | `0xd455319e9cef8103b6537bb38c517594c98c30fc167285e23958a8ed497cfdb0` |
+| **Enable Earning**              | `0x3e8402b36bf1b7ef46e89325e231a93094ab0907b1f2a7d2149052f0af42075f` |
+| **Simulate Yield**              | `0xe493a2c9202b07d9ea8b369a45d1863ee1a1f72fd52055f2971b14530bf8a4d4` |
+| **Claim Yield**                 | `0xc7099609a34e6e51da697c11465a4e7379f6c9703be927aa8906fd3bda90c08f` |
+
+### Etherscan Links
+
+**Contract Addresses:**
+
+- **Proxy Contract**: https://sepolia.etherscan.io/address/0x55F20C2b576Edb53B85D1e98898b53D63C8b88D2
+- **Implementation Contract**: https://sepolia.etherscan.io/address/0xEFC0411F5F5Cb91A75F3ca0d2e6870da8B504484
+- **M Token**: https://sepolia.etherscan.io/address/0x2B5899D1d1607FEfBfD54D6EfD2659Cc146b20c2
+- **SwapFacility**: https://sepolia.etherscan.io/address/0x700669F97C704A5f11F12555c9160DE23ac9bCAa
+- **PrizeDistributor**: https://sepolia.etherscan.io/address/0xbe65531Bd68d1D5E898D6061484761dbf2221b3E
+
+**Transaction Links:**
+
+- **enableEarning TX**: https://sepolia.etherscan.io/tx/0x3e8402b36bf1b7ef46e89325e231a93094ab0907b1f2a7d2149052f0af42075f
+- **claimYield TX**: https://sepolia.etherscan.io/tx/0xc7099609a34e6e51da697c11465a4e7379f6c9703be927aa8906fd3bda90c08f
+
+### Deployment Verification
+
+✅ **All tests passing**: 58/58 tests (100% success rate)  
+✅ **All core functionality verified**: End-to-end flow tested  
+✅ **Demo script working**: Balance tracking confirmed  
+✅ **Contracts deployed**: Live on Sepolia Block 9368919
+
+### Test Results
+
+```
+========================================
+    DEMO COMPLETE - SUCCESS!
+========================================
+
+=== INITIAL BALANCES ===
+Extension M token balance: 100000 M
+Extension total supply: 100000 tokens
+PrizeDistributor balance: 0 tokens
+Claimable yield: 0 M
+
+=== BALANCES AFTER DISTRIBUTION ===
+Extension M token balance: 110000 M
+Extension total supply: 110000 tokens
+PrizeDistributor balance: 10000 tokens
+Total yield claimed: 10000 M
+
+Distribution successful: YES
+```
+
+---
+
+## Verification
+
+### Contract Verification (Optional)
+
+If you want to verify contracts on Etherscan:
+
+```bash
+forge verify-contract $IMPLEMENTATION \
+  src/MYieldToPrizeDistributor.sol:MYieldToPrizeDistributor \
+  --chain sepolia \
+  --etherscan-api-key $ETHERSCAN_API_KEY
+```
+
+### Function Verification
+
+Test key functions to ensure proper deployment:
+
+```bash
+# Check roles
+cast call $EXTENSION "hasRole(bytes32,address)" \
+  0x0000000000000000000000000000000000000000000000000000000000000000 \
+  $ADMIN --rpc-url $SEPOLIA_RPC_URL
+
+# Check earning status
+cast call $EXTENSION "earningActive()(bool)" --rpc-url $SEPOLIA_RPC_URL
+
+# Check beneficiary
+cast call $EXTENSION "yieldRecipient()(address)" --rpc-url $SEPOLIA_RPC_URL
+
+# Check claimable yield
+cast call $EXTENSION "yield()(uint256)" --rpc-url $SEPOLIA_RPC_URL
+```

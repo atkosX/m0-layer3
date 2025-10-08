@@ -14,7 +14,7 @@ import {ISwapFacility} from "../interfaces/ISwapFacility.sol";
 import {IPrizeDistributor} from "../interfaces/IPrizeDistributor.sol";
 
 /**
- * @title  MYieldToPrizeDistributor
+ * @title  MYieldToOne
  * @notice M0 Extension Token that wraps M and routes 100% of yield to a PrizeDistributor
  * @dev    Follows M0's official extension architecture:
  *         - Users wrap M via SwapFacility → receive extension tokens
@@ -25,13 +25,12 @@ import {IPrizeDistributor} from "../interfaces/IPrizeDistributor.sol";
  *
  * ARCHITECTURE:
  * ============
- * This follows M0's MYieldToOne pattern where:
  * 1. totalSupply tracks wrapped M tokens (1:1)
  * 2. M balance > totalSupply = yield accrued
  * 3. Yield is "claimed" by minting extension tokens to recipient
  * 4. Recipient unwraps tokens to get actual M
  * 
- * @author Your Team
+ * @author Akshat
  */
 contract MYieldToPrizeDistributor is
     Initializable,
@@ -235,6 +234,7 @@ contract MYieldToPrizeDistributor is
      *      PrizeDistributor can then unwrap to get actual M
      */
     function claimYield() public virtual nonReentrant whenNotPaused returns (uint256 yieldAmount) {
+        require(earningActive, "Earning not active");
         yieldAmount = _calculateYield();
         
         if (yieldAmount <= 0) return 0;

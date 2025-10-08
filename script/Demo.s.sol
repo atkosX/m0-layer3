@@ -1,128 +1,141 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.26;
 
-import {Script, console} from "forge-std/Script.sol";
-import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
-
+import "forge-std/Script.sol";
 import {MYieldToPrizeDistributor} from "../src/MYieldToPrizeDistributor.sol";
 import {MockMToken} from "../test/mocks/MockMToken.sol";
 import {MockSwapFacility} from "../test/mocks/MockSwapFacility.sol";
 import {MockPrizeDistributor} from "../test/mocks/MockPrizeDistributor.sol";
+import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
 /**
  * @title Demo Script
- * @notice Demonstrates the complete yield distribution flow
- * @dev Shows before/after balances and yield distribution
+ * @notice Demonstrates MYieldToOne functionality with balance printing
+ * @dev Shows before/after balances for yield distribution
  */
 contract Demo is Script {
     function run() external {
-        console.log("\n========================================");
-        console.log("  M0 EXTENSION YIELD DISTRIBUTION DEMO");
-        console.log("========================================\n");
+        vm.startBroadcast();
         
-        // Get deployed addresses from environment
-        address extension = vm.envAddress("EXTENSION");
-        address mToken = vm.envAddress("M_TOKEN");
-        address swapFacility = vm.envAddress("SWAP_FACILITY");
-        address prizeDistributor = vm.envAddress("PRIZE_DISTRIBUTOR");
+        console2.log("\n========================================");
+        console2.log("  MYIELDTOONE DEMO - BALANCE TRACKING");
+        console2.log("========================================\n");
         
-        console.log("Using deployed contracts:");
-        console.log("Extension:", extension);
-        console.log("M Token:", mToken);
-        console.log("Swap Facility:", swapFacility);
-        console.log("Prize Distributor:", prizeDistributor);
-        console.log("");
+        // Deploy mock contracts
+        console2.log("Deploying mock contracts...");
+        MockMToken mToken = new MockMToken();
+        MockSwapFacility swapFacility = new MockSwapFacility(address(mToken));
+        MockPrizeDistributor prizeDistributor = new MockPrizeDistributor();
         
-        // Create contract instances
-        MYieldToPrizeDistributor ext = MYieldToPrizeDistributor(extension);
-        MockMToken m = MockMToken(mToken);
-        MockSwapFacility swap = MockSwapFacility(swapFacility);
-        MockPrizeDistributor prize = MockPrizeDistributor(prizeDistributor);
+        console2.log("M Token:", address(mToken));
+        console2.log("SwapFacility:", address(swapFacility));
+        console2.log("PrizeDistributor:", address(prizeDistributor));
+
+        // Deploy MYieldToOne
+        console2.log("\nDeploying MYieldToOne...");
+        MYieldToPrizeDistributor implementation = new MYieldToPrizeDistributor();
         
-        uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
-        address deployer = vm.addr(deployerPrivateKey);
+        bytes memory initData = abi.encodeWithSelector(
+            MYieldToPrizeDistributor.initialize.selector,
+            "M Yield to PrizeDistributor",
+            "MYPD",
+            address(mToken),
+            address(swapFacility),
+            address(prizeDistributor),
+            msg.sender, // admin
+            msg.sender, // gov
+            msg.sender  // pauser
+        );
         
-        vm.startBroadcast(deployerPrivateKey);
+        ERC1967Proxy proxy = new ERC1967Proxy(address(implementation), initData);
+        MYieldToPrizeDistributor extension = MYieldToPrizeDistributor(address(proxy));
         
-        // ===== INITIAL STATE =====
-        console.log("=== INITIAL STATE ===");
-        uint256 initialMBalance = ext.mBalance();
-        uint256 initialTotalSupply = ext.totalSupply();
-        uint256 initialPrizeBalance = ext.balanceOf(prizeDistributor);
-        uint256 initialYield = ext.yield();
+        console2.log("MYieldToOne deployed at:", address(extension));
+
+        // Setup initial state
+        console2.log("\nSetting up initial state...");
+        mToken.mint(msg.sender, 1_000_000e6); // 1M M tokens
+        mToken.approve(address(swapFacility), type(uint256).max);
+        console2.log("Minted 1M M tokens to deployer");
+
+        // Wrap some M tokens
+        uint256 wrapAmount = 100_000e6; // 100k M tokens
+        console2.log("\nWrapping", wrapAmount / 1e6, "M tokens...");
+        swapFacility.wrapMToken(address(extension), wrapAmount);
+        console2.log("Wrapped tokens successfully");
+
+        // Check initial balances
+        console2.log("\n=== INITIAL BALANCES ===");
+        uint256 mTokenBalance = mToken.balanceOf(address(extension));
+        uint256 extensionSupply = extension.totalSupply();
+        uint256 prizeDistributorBalance = extension.balanceOf(address(prizeDistributor));
+        uint256 claimableYield = extension.yield();
         
-        console.log("Extension M Balance:", initialMBalance);
-        console.log("Total Supply:", initialTotalSupply);
-        console.log("PrizeDistributor Balance:", initialPrizeBalance);
-        console.log("Claimable Yield:", initialYield);
-        console.log("");
+        console2.log("Extension M token balance:", mTokenBalance / 1e6, "M");
+        console2.log("Extension total supply:", extensionSupply / 1e6, "tokens");
+        console2.log("PrizeDistributor balance:", prizeDistributorBalance / 1e6, "tokens");
+        console2.log("Claimable yield:", claimableYield / 1e6, "M");
+
+        // Enable earning
+        console2.log("\nEnabling earning...");
+        extension.enableEarning();
+        console2.log("Earning enabled:", extension.earningActive());
+
+        // Simulate yield accrual
+        uint256 yieldAmount = 10_000e6; // 10k M yield
+        console2.log("\nSimulating", yieldAmount / 1e6, "M yield...");
+        mToken.simulateYield(address(extension), yieldAmount);
+        console2.log("Yield simulated successfully");
+
+        // Check balances after yield simulation
+        console2.log("\n=== BALANCES AFTER YIELD SIMULATION ===");
+        mTokenBalance = mToken.balanceOf(address(extension));
+        extensionSupply = extension.totalSupply();
+        claimableYield = extension.yield();
         
-        // ===== WRAP TOKENS =====
-        console.log("=== WRAPPING 50,000 M TOKENS ===");
-        uint256 wrapAmount = 50_000e6; // 50k M tokens
+        console2.log("Extension M token balance:", mTokenBalance / 1e6, "M");
+        console2.log("Extension total supply:", extensionSupply / 1e6, "tokens");
+        console2.log("Claimable yield:", claimableYield / 1e6, "M");
+
+        // Record balances before distribution
+        console2.log("\n=== BALANCES BEFORE DISTRIBUTION ===");
+        prizeDistributorBalance = extension.balanceOf(address(prizeDistributor));
+        uint256 totalYieldClaimed = extension.totalYieldClaimed();
+        uint256 lastClaimTime = extension.lastClaimTime();
         
-        // Check deployer M balance
-        uint256 deployerMBalance = m.balanceOf(deployer);
-        console.log("Deployer M Balance:", deployerMBalance);
+        console2.log("PrizeDistributor balance:", prizeDistributorBalance / 1e6, "tokens");
+        console2.log("Total yield claimed:", totalYieldClaimed / 1e6, "M");
+        console2.log("Last claim time:", lastClaimTime);
+
+        // Distribute yield
+        console2.log("\nDistributing yield...");
+        uint256 distributedAmount = extension.claimYield();
+        console2.log("Yield distributed:", distributedAmount / 1e6, "M");
+
+        // Check balances after distribution
+        console2.log("\n=== BALANCES AFTER DISTRIBUTION ===");
+        mTokenBalance = mToken.balanceOf(address(extension));
+        extensionSupply = extension.totalSupply();
+        prizeDistributorBalance = extension.balanceOf(address(prizeDistributor));
+        totalYieldClaimed = extension.totalYieldClaimed();
+        lastClaimTime = extension.lastClaimTime();
         
-        // Wrap tokens
-        swap.wrapMToken(extension, wrapAmount);
-        console.log("Wrapped", wrapAmount, "M tokens");
+        console2.log("Extension M token balance:", mTokenBalance / 1e6, "M");
+        console2.log("Extension total supply:", extensionSupply / 1e6, "tokens");
+        console2.log("PrizeDistributor balance:", prizeDistributorBalance / 1e6, "tokens");
+        console2.log("Total yield claimed:", totalYieldClaimed / 1e6, "M");
+        console2.log("Last claim time:", lastClaimTime);
+
+        // Summary
+        console2.log("\n=== DISTRIBUTION SUMMARY ===");
+        console2.log("Yield distributed to PrizeDistributor:", distributedAmount / 1e6, "M");
+        console2.log("PrizeDistributor received:", prizeDistributorBalance / 1e6, "extension tokens");
+        console2.log("Distribution successful:", distributedAmount > 0 ? "YES" : "NO");
         
-        // ===== ENABLE EARNING =====
-        console.log("\n=== ENABLING EARNING ===");
-        ext.enableEarning();
-        console.log("Earning enabled");
-        
-        // ===== SIMULATE YIELD =====
-        console.log("\n=== SIMULATING YIELD ===");
-        uint256 yieldAmount = 5_000e6; // 5k M tokens yield
-        m.simulateYield(extension, yieldAmount);
-        console.log("Simulated", yieldAmount, "M tokens yield");
-        
-        // ===== CHECK STATE BEFORE CLAIM =====
-        console.log("\n=== STATE BEFORE YIELD CLAIM ===");
-        uint256 beforeMBalance = ext.mBalance();
-        uint256 beforeTotalSupply = ext.totalSupply();
-        uint256 beforePrizeBalance = ext.balanceOf(prizeDistributor);
-        uint256 beforeYield = ext.yield();
-        
-        console.log("Extension M Balance:", beforeMBalance);
-        console.log("Total Supply:", beforeTotalSupply);
-        console.log("PrizeDistributor Balance:", beforePrizeBalance);
-        console.log("Claimable Yield:", beforeYield);
-        console.log("");
-        
-        // ===== CLAIM YIELD =====
-        console.log("=== CLAIMING YIELD ===");
-        uint256 claimedYield = ext.claimYield();
-        console.log("Claimed yield:", claimedYield);
-        
-        // ===== FINAL STATE =====
-        console.log("\n=== FINAL STATE ===");
-        uint256 finalMBalance = ext.mBalance();
-        uint256 finalTotalSupply = ext.totalSupply();
-        uint256 finalPrizeBalance = ext.balanceOf(prizeDistributor);
-        uint256 finalYield = ext.yield();
-        
-        console.log("Extension M Balance:", finalMBalance);
-        console.log("Total Supply:", finalTotalSupply);
-        console.log("PrizeDistributor Balance:", finalPrizeBalance);
-        console.log("Remaining Yield:", finalYield);
-        console.log("");
-        
-        // ===== VERIFICATION =====
-        console.log("=== VERIFICATION ===");
-        console.log("Yield Distribution Success!");
-        console.log("PrizeDistributor received:", finalPrizeBalance, "tokens");
-        console.log("Total supply increased by:", finalTotalSupply - beforeTotalSupply);
-        console.log("M balance matches total supply:", finalMBalance == finalTotalSupply);
-        console.log("No remaining yield:", finalYield == 0);
-        
+        console2.log("\n========================================");
+        console2.log("  DEMO COMPLETE - SUCCESS!");
+        console2.log("========================================\n");
+
         vm.stopBroadcast();
-        
-        console.log("\n========================================");
-        console.log("  DEMO COMPLETED SUCCESSFULLY!");
-        console.log("========================================\n");
     }
 }

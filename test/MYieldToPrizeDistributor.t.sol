@@ -197,6 +197,7 @@ contract MYieldToPrizeDistributorTest is Test {
     /* ============ Yield Claiming Tests ============ */
 
     function test_ClaimYieldWithNoYield() public {
+        extension.enableEarning();
         uint256 yielded = extension.claimYield();
         assertEq(yielded, 0);
     }
@@ -231,6 +232,9 @@ contract MYieldToPrizeDistributorTest is Test {
         // Wrap tokens
         vm.prank(user1);
         swapFacility.wrapMToken(address(extension), WRAP_AMOUNT);
+
+        // Enable earning
+        extension.enableEarning();
 
         // Simulate yield
         uint256 yieldAmount = 5_000e6;
@@ -310,6 +314,9 @@ contract MYieldToPrizeDistributorTest is Test {
         // Wrap and generate yield
         vm.prank(user1);
         swapFacility.wrapMToken(address(extension), WRAP_AMOUNT);
+
+        // Enable earning
+        extension.enableEarning();
 
         uint256 yieldAmount = 5_000e6;
         mToken.simulateYield(address(extension), yieldAmount);
