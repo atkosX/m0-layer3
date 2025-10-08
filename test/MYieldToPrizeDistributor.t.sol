@@ -649,6 +649,81 @@ contract MYieldToPrizeDistributorTest is Test {
 
         assertEq(extension.balanceOf(user1), WRAP_AMOUNT - WRAP_AMOUNT / 4);
     }
+
+    /* ============ Stretch Goal Tests ============ */
+
+    function test_CumulativeYieldTracking() public {
+        // Initial state
+        assertEq(extension.totalYieldClaimed(), 0);
+        assertEq(extension.lastClaimTime(), 0);
+
+        // Wrap and generate yield
+        vm.prank(user1);
+        swapFacility.wrapMToken(address(extension), WRAP_AMOUNT);
+        extension.enableEarning();
+
+        uint256 yield1 = 5_000e6;
+        mToken.simulateYield(address(extension), yield1);
+        extension.claimYield();
+
+        // Check tracking
+        assertEq(extension.totalYieldClaimed(), yield1);
+        assertEq(extension.lastClaimTime(), block.timestamp);
+
+        // Generate more yield
+        uint256 yield2 = 3_000e6;
+        mToken.simulateYield(address(extension), yield2);
+        extension.claimYield();
+
+        // Check cumulative tracking
+        assertEq(extension.totalYieldClaimed(), yield1 + yield2);
+        assertEq(extension.lastClaimTime(), block.timestamp);
+    }
+
+    function test_EpochTrackingInPrizeDistributor() public {
+        // Wrap and generate yield
+        vm.prank(user1);
+        swapFacility.wrapMToken(address(extension), WRAP_AMOUNT);
+        extension.enableEarning();
+
+        uint256 yield1 = 5_000e6;
+        mToken.simulateYield(address(extension), yield1);
+        extension.claimYield();
+
+        // Check epoch tracking
+        assertEq(prizeDistributor.getEpochCount(), 1);
+        assertEq(prizeDistributor.getLastEpoch(), block.timestamp);
+        assertEq(prizeDistributor.epochYield(block.timestamp), yield1);
+
+        // Generate more yield
+        uint256 yield2 = 3_000e6;
+        mToken.simulateYield(address(extension), yield2);
+        extension.claimYield();
+
+        // Check multiple epochs
+        assertEq(prizeDistributor.getEpochCount(), 2);
+        assertEq(prizeDistributor.getTotalYieldReceived(), yield1 + yield2);
+    }
+
+    function test_PrizeDistributorEpochHelpers() public {
+        // Generate some yield
+        vm.prank(user1);
+        swapFacility.wrapMToken(address(extension), WRAP_AMOUNT);
+        extension.enableEarning();
+
+        uint256 yield1 = 5_000e6;
+        mToken.simulateYield(address(extension), yield1);
+        extension.claimYield();
+
+        // Test epoch helpers
+        assertEq(prizeDistributor.getEpochCount(), 1);
+        assertEq(prizeDistributor.getLastEpoch(), block.timestamp);
+
+        // Test epoch yield at index
+        (uint256 epoch, uint256 yield) = prizeDistributor.getEpochYieldAt(0);
+        assertEq(epoch, block.timestamp);
+        assertEq(yield, yield1);
+    }
 }
 
 

@@ -62,6 +62,12 @@ contract MYieldToPrizeDistributor is
     /// @notice Whether earning is currently active
     bool public earningActive;
 
+    /// @notice Total yield claimed across all time
+    uint256 public totalYieldClaimed;
+
+    /// @notice Timestamp of last yield claim
+    uint256 public lastClaimTime;
+
     /// @notice Total supply of extension tokens
     uint256 public totalSupply;
 
@@ -228,10 +234,14 @@ contract MYieldToPrizeDistributor is
      *      Mints extension tokens to yieldRecipient (PrizeDistributor)
      *      PrizeDistributor can then unwrap to get actual M
      */
-    function claimYield() public nonReentrant whenNotPaused returns (uint256 yieldAmount) {
+    function claimYield() public virtual nonReentrant whenNotPaused returns (uint256 yieldAmount) {
         yieldAmount = _calculateYield();
         
         if (yieldAmount == 0) return 0;
+        
+        // Update cumulative tracking
+        totalYieldClaimed += yieldAmount;
+        lastClaimTime = block.timestamp;
         
         // Mint extension tokens to PrizeDistributor
         _mint(yieldRecipient, yieldAmount);
