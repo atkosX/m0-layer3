@@ -1,0 +1,37 @@
+# Compiler files
+cache/
+out/
+build/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Node modules (if using npm/yarn)
+node_modules/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Foundry
+broadcast/
+deployments/
+
+# Test coverage
+coverage/
+*.lcov
+
+# Ignore forge cache
+.forge-cache/
+
+# Ignore deployment artifacts
+scripts/deployment-*.json
